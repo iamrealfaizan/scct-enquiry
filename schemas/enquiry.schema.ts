@@ -99,8 +99,25 @@ export const staffEnquirySchema = baseEnquiry
   })
   .strict();
 
-export type PublicEnquiryInput = z.infer<typeof publicEnquirySchema>;
-export type StaffEnquiryInput = z.infer<typeof staffEnquirySchema>;
+/**
+ * OUTPUT types — what the server receives after parsing, and what the service
+ * takes. `email: ""` has already become `undefined` here.
+ */
+export type PublicEnquiryInput = z.output<typeof publicEnquirySchema>;
+export type StaffEnquiryInput = z.output<typeof staffEnquirySchema>;
+
+/**
+ * INPUT types — what the form's fields actually hold before parsing.
+ *
+ * These differ from the output types because `email` carries a `.transform()`
+ * that maps `""` to `undefined`. A form input is always a string, never
+ * undefined, so a controlled field must be typed on the input side. Using the
+ * output type for `useForm` is the mismatch that makes `zodResolver` fail to
+ * typecheck — worth knowing, because the error message points at the resolver
+ * rather than at the transform that caused it.
+ */
+export type PublicEnquiryFormValues = z.input<typeof publicEnquirySchema>;
+export type StaffEnquiryFormValues = z.input<typeof staffEnquirySchema>;
 
 /**
  * Field-level errors in the shape the envelope's `details` carries, and the shape
