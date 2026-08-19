@@ -1,5 +1,9 @@
 {
   "compilerOptions": {
+    // Node 20 and every modern browser support this. Without an explicit target,
+    // TypeScript assumes ES5, which forbids Map/Set iteration and unicode regex
+    // flags — both of which this codebase uses deliberately.
+    "target": "ES2022",
     "lib": ["dom", "dom.iterable", "esnext"],
     "allowJs": true,
     "skipLibCheck": true,

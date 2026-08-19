@@ -2,7 +2,9 @@ import type { Types } from "mongoose";
 
 import { StaffProfile, User } from "@/models";
 
-import { ROLE_CODES, type RoleCode, type RoleIds } from "./roles";
+import { ROLE_CODES, type RoleCode } from "@/config/codes";
+
+import type { RoleIds } from "./roles";
 
 /**
  * Synthetic staff accounts — five of them, and every detail here is a decision.

@@ -1,5 +1,9 @@
 import type { Types } from "mongoose";
 
+import {
+  PERMISSION_CODES,
+  type PermissionCode,
+} from "@/config/codes";
 import { Permission } from "@/models";
 
 import { upsertByCode } from "./upsert";
@@ -15,21 +19,6 @@ import { upsertByCode } from "./upsert";
  * the part that carries weight — it is what lets a counsellor see their own
  * queue and a manager see everything, without a second permission system.
  */
-export const PERMISSION_CODES = {
-  ENQUIRY_VIEW_OWN: "enquiry.view.own",
-  ENQUIRY_VIEW_ALL: "enquiry.view.all",
-  ENQUIRY_UPDATE_OWN: "enquiry.update.own",
-  ENQUIRY_NOTE_CREATE: "enquiry.note.create",
-  ENQUIRY_REASSIGN: "enquiry.reassign",
-  ENQUIRY_CAPTURE: "enquiry.capture",
-  DUPLICATE_REVIEW: "duplicate.review",
-  REPORT_VIEW: "report.view",
-  EXPORT_RUN: "export.run",
-  STAFF_MANAGE: "staff.manage",
-  CONFIG_MANAGE: "config.manage",
-} as const;
-
-export type PermissionCode = (typeof PERMISSION_CODES)[keyof typeof PERMISSION_CODES];
 
 const PERMISSIONS: Array<{
   code: PermissionCode;

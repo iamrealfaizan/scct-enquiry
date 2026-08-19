@@ -1,5 +1,10 @@
 import type { Types } from "mongoose";
 
+import {
+  DEFAULT_STATUS_CODE,
+  STATUS_CODES,
+  type StatusCode,
+} from "@/config/codes";
 import { EnquiryStatus } from "@/models";
 
 import { upsertByCode } from "./upsert";
@@ -27,23 +32,7 @@ import { upsertByCode } from "./upsert";
  * last row in the list.
  */
 
-export const STATUS_CODES = {
-  NEW: "NEW",
-  CONTACTED: "CONTACTED",
-  IN_DISCUSSION: "IN_DISCUSSION",
-  CLOSED_ENROLLED: "CLOSED_ENROLLED",
-  CLOSED_NOT_PROCEEDING: "CLOSED_NOT_PROCEEDING",
-} as const;
 
-export type StatusCode = (typeof STATUS_CODES)[keyof typeof STATUS_CODES];
-
-/**
- * The status every new enquiry starts in, from both surfaces.
- *
- * Resolved by CODE, never by "the row with the lowest displayOrder" — the
- * default must not move because someone reordered a dropdown.
- */
-export const DEFAULT_STATUS_CODE: StatusCode = STATUS_CODES.NEW;
 
 const STATUSES: Array<{
   code: StatusCode;

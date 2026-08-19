@@ -1,5 +1,6 @@
 import type { Types } from "mongoose";
 
+import { PROGRAMME_CODES, type ProgrammeCode } from "@/config/codes";
 import { Programme } from "@/models";
 
 import { upsertByCode } from "./upsert";
@@ -21,17 +22,6 @@ import { upsertByCode } from "./upsert";
  * reads in an order staff will recognise rather than alphabetically.
  */
 
-export const PROGRAMME_CODES = {
-  BCOM: "BCOM",
-  BCOM_MS: "BCOM_MS",
-  BAF: "BAF",
-  BBI: "BBI",
-  BAMMC: "BAMMC",
-  BSC_IT: "BSC_IT",
-  BSC_CS: "BSC_CS",
-} as const;
-
-export type ProgrammeCode = (typeof PROGRAMME_CODES)[keyof typeof PROGRAMME_CODES];
 
 const PROGRAMMES: Array<{
   code: ProgrammeCode;

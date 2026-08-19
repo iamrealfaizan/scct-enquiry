@@ -1,5 +1,6 @@
 import type { Types } from "mongoose";
 
+import { SOURCE_CODES, type SourceCode } from "@/config/codes";
 import { EnquirySource } from "@/models";
 
 import { upsertByCode } from "./upsert";
@@ -36,36 +37,7 @@ import { upsertByCode } from "./upsert";
  * paragraph in the README that nobody can act on.
  */
 
-export const SOURCE_CODES = {
-  // ── route analysis, as reported ────────────────────────────────────────────
-  WALK_IN: "WALK_IN",
-  SOCIAL_MEDIA: "SOCIAL_MEDIA",
-  IN_HOUSE_STUDENT: "IN_HOUSE_STUDENT",
-  TEACHER_CALLING_PURCHASED_DATA: "TEACHER_CALLING_PURCHASED_DATA",
-  WEBSITE: "WEBSITE",
-  REFERENCE: "REFERENCE",
-  UNIVERSITY_TAG_LIST: "UNIVERSITY_TAG_LIST",
 
-  // ── source analysis, as reported ───────────────────────────────────────────
-  GOOGLE_SEARCH: "GOOGLE_SEARCH",
-  FRIENDS_FAMILY: "FRIENDS_FAMILY",
-  SCHOOL_TEACHER: "SCHOOL_TEACHER",
-  TRAIN_ADVERTISEMENT: "TRAIN_ADVERTISEMENT",
-  OTHER: "OTHER",
-  UNATTRIBUTED: "UNATTRIBUTED",
-} as const;
-
-export type SourceCode = (typeof SOURCE_CODES)[keyof typeof SOURCE_CODES];
-
-/**
- * The source the public form records, forced server-side.
- *
- * The public surface never lets the submitter choose their own source: a
- * self-reported channel is unreliable, and an open field there would corrupt the
- * one number leadership will actually act on. A submission through the public
- * form arrived through the website, by definition of the surface it came from.
- */
-export const PUBLIC_FORM_SOURCE_CODE: SourceCode = SOURCE_CODES.WEBSITE;
 
 const SOURCES: Array<{
   code: SourceCode;

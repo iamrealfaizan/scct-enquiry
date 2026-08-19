@@ -1,8 +1,14 @@
 import type { Types } from "mongoose";
 
+import {
+  PERMISSION_CODES,
+  ROLE_CODES,
+  type PermissionCode,
+  type RoleCode,
+} from "@/config/codes";
 import { Role } from "@/models";
 
-import { PERMISSION_CODES, type PermissionCode, type PermissionIds } from "./permissions";
+import type { PermissionIds } from "./permissions";
 import { upsertByCode } from "./upsert";
 
 /**
@@ -40,13 +46,6 @@ const ADMIN: PermissionCode[] = [
   PERMISSION_CODES.CONFIG_MANAGE,
 ];
 
-export const ROLE_CODES = {
-  COUNSELLOR: "counsellor",
-  MANAGER: "manager",
-  ADMIN: "admin",
-} as const;
-
-export type RoleCode = (typeof ROLE_CODES)[keyof typeof ROLE_CODES];
 
 const ROLES: Array<{
   code: RoleCode;

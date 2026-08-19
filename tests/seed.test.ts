@@ -2,12 +2,19 @@ import mongoose from "mongoose";
 import { beforeEach, describe, expect, it } from "vitest";
 
 import { EnquirySource, EnquiryStatus, Permission, Programme, Role, StaffProfile, User } from "@/models";
-import { PERMISSION_CODES, seedPermissions } from "@/scripts/seed/permissions";
-import { PROGRAMME_CODES, seedProgrammes } from "@/scripts/seed/programmes";
-import { ROLE_CODES, seedRoles } from "@/scripts/seed/roles";
-import { PUBLIC_FORM_SOURCE_CODE, seedSources } from "@/scripts/seed/sources";
+import {
+  DEFAULT_STATUS_CODE,
+  PERMISSION_CODES,
+  PROGRAMME_CODES,
+  PUBLIC_FORM_SOURCE_CODE,
+  ROLE_CODES,
+} from "@/config/codes";
+import { seedPermissions } from "@/scripts/seed/permissions";
+import { seedProgrammes } from "@/scripts/seed/programmes";
+import { seedRoles } from "@/scripts/seed/roles";
+import { seedSources } from "@/scripts/seed/sources";
 import { seedStaff } from "@/scripts/seed/staff";
-import { DEFAULT_STATUS_CODE, seedStatuses } from "@/scripts/seed/statuses";
+import { seedStatuses } from "@/scripts/seed/statuses";
 
 /**
  * Seed tests.
