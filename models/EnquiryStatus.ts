@@ -22,6 +22,7 @@ export interface IEnquiryStatus {
   // domain
   code: string;
   label: string;
+  description?: string;
   displayOrder: number;
   isDefault: boolean;
   isTerminal: boolean;
@@ -48,6 +49,13 @@ const EnquiryStatusSchema = new Schema<IEnquiryStatus>(
     // domain
     code: { type: String, required: true, trim: true },
     label: { type: String, required: true, trim: true },
+
+    // What this stage means, shown to staff alongside the label. Load-bearing for
+    // the placeholder statuses in particular: it is where a seeded row states, in
+    // words, that SCCT has not confirmed this stage — so the warning travels with
+    // the data instead of living only in the README.
+    description: { type: String, trim: true },
+
     displayOrder: { type: Number, default: 0 },
 
     isDefault: { type: Boolean, default: false },

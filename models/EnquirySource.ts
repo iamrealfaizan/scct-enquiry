@@ -42,6 +42,7 @@ export interface IEnquirySource {
   canonicalSource: Types.ObjectId | null;
 
   taxonomyGroup: "route_analysis" | "source_analysis" | "canonical";
+  displayOrder: number;
   isSystem: boolean;
 
   // lifecycle
@@ -76,6 +77,12 @@ const EnquirySourceSchema = new Schema<IEnquirySource>(
       required: true,
     },
 
+    // Presentation order for the source dropdown. Explicit rather than
+    // alphabetical: the two taxonomy groups must stay visually grouped, and
+    // "Other" / "Unattributed" belong at the end of a list, never in the middle
+    // of it where alphabetical ordering would put them.
+    displayOrder: { type: Number, default: 0 },
+
     isSystem: { type: Boolean, default: false },
 
     // lifecycle
@@ -97,6 +104,13 @@ EnquirySourceSchema.index({ canonicalSource: 1 }, { name: "enquirysource_canonic
 EnquirySourceSchema.index(
   { taxonomyGroup: 1, isActive: 1 },
   { name: "enquirysource_taxonomy_active_idx" },
+);
+
+// The dropdown query: active sources in presentation order. Leads with the
+// filter, ends with the sort field (conventions §5.9).
+EnquirySourceSchema.index(
+  { isActive: 1, displayOrder: 1 },
+  { name: "enquirysource_active_order_idx" },
 );
 
 const EnquirySource =
