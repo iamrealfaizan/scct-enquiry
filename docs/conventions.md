@@ -48,7 +48,7 @@ between the form, the API and the export contract.
 | Thing | Version | Why |
 |---|---|---|
 | Node.js | 20 LTS | Vercel default runtime |
-| Next.js | 14.2.x (App Router) | Pinned to a version already shipped in production; a 3–4 day build should not absorb framework churn |
+| Next.js | **14.2.35** (App Router) — the last 14.x release | Pinned for delivery certainty on a version already shipped in production. **This version carries residual advisories fixed only in 15.x** — the decision, the full applicability triage and the pre-production upgrade requirement are in [security-notes.md](security-notes.md). Do not change this pin without reading that file. |
 | React | 18 | Pairs with Next 14 |
 | TypeScript | 5, `strict: true` | |
 | Mongoose | 8.x | |
@@ -62,6 +62,16 @@ between the form, the API and the export contract.
 
 Dependencies are added only when a feature needs them. No carousel, drag-and-drop, animation, 2FA
 or i18n libraries. Export uses **one** spreadsheet library, not two.
+
+`package.json` carries two `overrides` — `postcss` and `glob` — to pull transitive dependencies past
+known advisories that `next@14.2.35` and its eslint plugin would otherwise pin below. They are
+load-bearing: removing them reintroduces four audit findings. Reason recorded in
+[security-notes.md](security-notes.md) §1.
+
+**The API uses route handlers, never Server Actions.** Primary reason: a route handler is a plain
+`(req: Request) => Response` function that a test can call directly, with no HTTP server and no
+framework harness. Secondary reason: it removes five Next advisories from the applicable set
+([security-notes.md](security-notes.md) §3).
 
 ---
 
@@ -218,12 +228,18 @@ queries. `isActive` marks a row unusable for *new* work but still visible on his
 `status` on `Enquiry` is a **ref to `EnquiryStatus`**, never a string enum (§5.8) — it is the
 business state, and it is independent of the two lifecycle flags.
 
-**Two deliberate exceptions:**
+**Deliberate exceptions:**
 
 - `EnquiryEvent` has `createdBy` but **no `updatedBy`**. History is append-only, so a row is never
   updated and the field would always be null. Omitting it makes append-only visible in the schema
   rather than being a convention someone can break.
-- `Sequence` carries none of these blocks. It is an internal counter, not a domain entity.
+- `EnquiryEvent` also has **no `isActive` / `isArchived`**. An audit record that can be hidden is not
+  an audit record — archiving history would let someone remove the evidence of a change while leaving
+  the change in place.
+- `Sequence` carries none of these blocks, and no `timestamps`. It is an internal counter, not a
+  domain entity: there is no archived counter, and "who incremented it" is answered by `EnquiryEvent`.
+- `EnquiryEvent.createdBy` and `Enquiry.capturedBy` are **nullable**, and null is meaningful: the
+  actor was the public form or a system process, not a staff account.
 
 ### 5.7 Many-to-many gets its own junction table
 
@@ -290,7 +306,7 @@ rejected, per the approved duplicate rule. A unique index there would enforce th
   `findOneAndUpdate` + `$inc`. **Never `countDocuments() + 1`** — two concurrent writes would
   produce the same number.
 
-### 5.11 The ten models
+### 5.11 The twelve models
 
 | # | Model | Holds |
 |---|---|---|
@@ -298,12 +314,38 @@ rejected, per the approved duplicate rule. A unique index there would enforce th
 | 2 | `Role` | code, name, `permissions[]`, `isSystem` |
 | 3 | `Permission` | code, name, category, `isSystem` |
 | 4 | `StaffProfile` | Domain profile, 1:1 → `User`; name, phone, `eligibleForAssignment` |
-| 5 | `Programme` | code, name, `stream`, `isSystem` |
-| 6 | `EnquirySource` | code, label, `canonicalSource` self-ref, `isSystem` |
-| 7 | `EnquiryStatus` | code, label, order, `isTerminal`, `isSystem` |
+| 5 | `Programme` | code, name, `stream` enum, `isSystem` |
+| 6 | `EnquirySource` | code, label, `canonicalSource` self-ref, `taxonomyGroup`, `isSystem` |
+| 7 | `EnquiryStatus` | code, label, order, `isDefault`, `isTerminal`, `isPlaceholder` |
 | 8 | `Enquiry` | The core record |
-| 9 | `EnquiryEvent` | Append-only history |
-| 10 | `Sequence` | Atomic counters |
+| 9 | `EnquiryEvent` | Append-only history — **notes live here** as `type: "note_added"` |
+| 10 | `EnquiryDuplicate` | Junction: the possible-duplicate pair + `matchedOn` + review state |
+| 11 | `FollowUp` | A scheduled next action with its own lifecycle and outcome |
+| 12 | `Sequence` | Atomic counters |
+
+`models/index.ts` re-exports all twelve. It is **load-bearing, not convenience**:
+Mongoose resolves a `ref` by name at populate time, and a name exists only once its file has been
+imported. Importing `Enquiry` alone and calling `.populate("programme")` throws
+`MissingSchemaError` — intermittently, depending on import order, which in serverless varies per cold
+start. **Services and route handlers import from `@/models`, never from an individual model file.**
+No schema is declared in the index, so one-file-one-entity still holds.
+
+**`EnquiryDuplicate` is a junction rather than an array on `Enquiry`** because the relationship
+carries data: which field matched, and whether a manager reviewed and dismissed it. Without a review
+state a dismissed false positive reappears forever, and a flag nobody trusts is worse than no flag.
+It stores `matchedOn` but **no contact values** — the values already exist on both enquiries, and
+copying a phone number into a third collection widens exposure of personal data for no benefit.
+
+**`FollowUp` is its own table** because a follow-up has a lifecycle — scheduled, then completed,
+missed, rescheduled or cancelled, with an outcome. A bare `nextFollowUpAt` date cannot represent a
+follow-up that was **missed**, which is exactly the question a manager needs answered given that
+SCCT's follow-up process is currently unrecorded phone calls. `Enquiry.nextFollowUpAt` is a
+maintained **cache** of the earliest scheduled follow-up, written only by the follow-up service, so
+the queue can sort by urgency on one index. If the two disagree, `FollowUp` wins.
+
+**Notes are `EnquiryEvent` rows, not their own table.** A note is not a separate noun — it *is* an
+audit event. Giving it a table would either duplicate the append-only machinery or leave a gap in the
+history log where notes bypassed it.
 
 **Not built, deliberately:** no `Institute` (§5.5). No `Person`/`Contact` — the link between one
 person's several enquiries is *derived* from normalised phone and email; a Person table is the first
@@ -561,6 +603,8 @@ is premature generalisation.
 20. Permission gates early-return while the session is `undefined`.
 21. `.env*` gitignored from the first commit; `.env.example` committed with placeholders.
 22. Add a dependency only when a feature needs it. Every one must be justifiable in one sentence.
+23. The API is route handlers, never Server Actions.
+24. Every API response sets `Cache-Control: no-store`. Authenticated responses are never cacheable.
 
 ---
 
@@ -585,4 +629,10 @@ Recorded as decisions are made, for the live defence.
 | `next-intl` locale-prefixed routing | No i18n requirement, and it forces every route into per-locale lists. |
 | Docker + file-mounted secrets | Deployment target is Vercel. |
 | `EnquirySink` interface for the v2 Sheets sync | A single documented write path is a cleaner seam than an abstraction with one implementation. |
+| Next 15.5.23 (and Next 16) | Would clear all 21 residual advisories at near-zero migration cost, since React 18 is still supported. Rejected in favour of delivery certainty on a familiar version for a 3–4 day synthetic-data trial. **Upgrading is the first pre-production requirement** — [security-notes.md](security-notes.md) §5. |
+| Server Actions for form submission | Route handlers are directly callable in tests, and avoid five Next advisories. |
+| `EnquiryNote` as its own table | A note is an audit event, not a separate noun. A table for it would either duplicate the append-only machinery or leave notes out of the history log. |
+| `possibleDuplicates: [ref]` array on `Enquiry` | The link carries payload (what matched, who dismissed it). An array has nowhere to record a review, so clearing a false positive would mean destructively editing the record. |
+| `ProgrammeStream` lookup table | NEP / Non-NEP is set by university regulation, not by a user — the closed-set case enum is reserved for. Becomes a lookup table if SCCT confirms more streams. |
+| `hscStream` as a lookup table | It is an unconfirmed placeholder field (open question 3). A thirteenth collection for a field that may not exist is premature; it becomes a lookup the moment SCCT confirms it as controlled. |
 | Embedding history as an array on `Enquiry` | Append-only becomes structural as a separate collection (inserts only); the array grows unbounded on a document read on every queue page; and "what did this counsellor do last week" is one query instead of impossible. |
