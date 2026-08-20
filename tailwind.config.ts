@@ -55,6 +55,18 @@ const config: Config = {
           DEFAULT: "hsl(var(--destructive))",
           foreground: "hsl(var(--destructive-foreground))",
         },
+        // Semantic state colours. Registered here so `bg-success`, `text-warning`
+        // and `border-success/40` resolve like any other token — without this a
+        // component would have to reach for a raw Tailwind colour, which is the
+        // one thing the token system exists to prevent.
+        success: {
+          DEFAULT: "hsl(var(--success))",
+          foreground: "hsl(var(--success-foreground))",
+        },
+        warning: {
+          DEFAULT: "hsl(var(--warning))",
+          foreground: "hsl(var(--warning-foreground))",
+        },
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
@@ -65,8 +77,18 @@ const config: Config = {
         sm: "calc(var(--radius) - 4px)",
       },
       fontFamily: {
-        sans: ["var(--font-geist-sans)", "system-ui", "sans-serif"],
-        mono: ["var(--font-geist-mono)", "ui-monospace", "monospace"],
+        /**
+         * Inter for reading, JetBrains Mono for identifiers. See app/layout.tsx
+         * for why each was chosen.
+         *
+         * The fallback stacks are not decoration: `display: "swap"` means the
+         * fallback is what a visitor sees for the first few hundred milliseconds,
+         * so it should be a system face with similar metrics rather than whatever
+         * the browser defaults to. `system-ui` resolves to Segoe UI on the
+         * Windows machines SCCT's staff use.
+         */
+        sans: ["var(--font-sans)", "system-ui", "-apple-system", "Segoe UI", "sans-serif"],
+        mono: ["var(--font-mono)", "ui-monospace", "SFMono-Regular", "Consolas", "monospace"],
       },
       keyframes: {
         "accordion-down": {

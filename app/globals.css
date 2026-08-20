@@ -3,78 +3,144 @@
 @tailwind utilities;
 
 /**
- * Design tokens — shadcn/ui `new-york` style, `neutral` base, CSS variables.
+ * Design tokens — shadcn/ui `new-york` structure, SCCT's palette.
  *
  * Every colour in the app resolves through one of these tokens. No component
- * hardcodes a hex value or a Tailwind palette colour directly, so a later brand
- * change is an edit to this block rather than a sweep through the components.
+ * hardcodes a hex value or a Tailwind palette colour directly, so a brand change
+ * is an edit to this block rather than a sweep through the components.
  *
  * Values are HSL channel triplets without the `hsl()` wrapper, which is what
  * lets Tailwind compose them with an opacity modifier: `bg-primary/10`.
+ *
+ * ─── WHERE THE PALETTE CAME FROM ───────────────────────────────────────────────
+ *
+ * Read off SCCT's live site (scct.edu.in), WordPress theme `tisson`, from its
+ * dynamic stylesheet `style-colors.php` and its skin folder named `green`:
+ *
+ *   #2c3e50  links and footer background   (17 uses)  -> --primary
+ *   #2ecc71  the theme's skin colour        (9 uses)  -> --success
+ *   #e6b41b  highlights                     (3 uses)  -> --warning
+ *   #dfe3e5  section backgrounds            (8 uses)  -> --muted / --secondary
+ *   #2d2e2f  body text                                -> --foreground
+ *
+ * SAY THIS PLAINLY WHEN ASKED: `#2c3e50` and `#2ecc71` are the stock Flat UI
+ * "Midnight Blue / Emerald" pair that ships with that theme. These values are
+ * therefore OBSERVED FROM THEIR LIVE SITE, not a brand guideline SCCT issued, and
+ * they are not presented as one. Confirming the real brand colours — and whether
+ * this demo may use their logo at all — is open question 12. Because it is all
+ * configuration, their answer replaces five lines here and touches nothing else.
+ *
+ * ─── GREEN DOES ONE JOB ────────────────────────────────────────────────────────
+ *
+ * Their site uses emerald as a general accent. Here it means POSITIVE STATE only —
+ * enrolled, follow-up completed. Navy carries actions instead. If green were both
+ * "this is a button" and "this enquiry enrolled", the queue's most important
+ * signal would be the same colour as its furniture.
+ *
+ *   --primary      navy    buttons, navigation, links
+ *   --success      emerald enrolled, completed
+ *   --warning      gold    duplicate flags, due today
+ *   --destructive  red     overdue, failed submissions
  */
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 0 0% 3.9%;
+    /* Not pure white: a table read for an hour is easier on a hair-warm ground,
+       and it lets cards sit above the page as genuinely white surfaces. */
+    --background: 200 20% 99%;
+    --foreground: 210 6% 18%;
 
     --card: 0 0% 100%;
-    --card-foreground: 0 0% 3.9%;
+    --card-foreground: 210 6% 18%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 3.9%;
+    --popover-foreground: 210 6% 18%;
 
-    --primary: 0 0% 9%;
-    --primary-foreground: 0 0% 98%;
+    /* #2c3e50 */
+    --primary: 210 29% 24%;
+    --primary-foreground: 200 20% 99%;
 
-    --secondary: 0 0% 96.1%;
-    --secondary-foreground: 0 0% 9%;
+    /* Derived from #dfe3e5, lightened — section fills and quiet buttons. */
+    --secondary: 200 16% 94%;
+    --secondary-foreground: 210 29% 24%;
 
-    --muted: 0 0% 96.1%;
-    --muted-foreground: 0 0% 45.1%;
+    --muted: 200 16% 95%;
+    /* 4.7:1 on --background. Below that, a table full of secondary text stops
+       being readable for anyone who is not young with a good monitor. */
+    --muted-foreground: 210 9% 42%;
 
-    --accent: 0 0% 96.1%;
-    --accent-foreground: 0 0% 9%;
+    --accent: 200 16% 93%;
+    --accent-foreground: 210 29% 24%;
+
+    /* #2ecc71, darkened for contrast. The raw value is 1.9:1 on white — fine as
+       a fill on their marketing site, unreadable as text. */
+    --success: 145 63% 32%;
+    --success-foreground: 0 0% 100%;
+
+    /* #e6b41b, darkened for the same reason. Gold on white is the worst offender
+       in any palette. */
+    --warning: 45 84% 30%;
+    --warning-foreground: 0 0% 100%;
 
     /* Validation errors, failed submissions, overdue follow-ups. */
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
+    --destructive: 0 72% 45%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 0 0% 89.8%;
-    --input: 0 0% 89.8%;
-    --ring: 0 0% 3.9%;
+    --border: 200 14% 88%;
+    --input: 200 14% 84%;
+    /* The focus ring is the brand colour, so keyboard focus is obvious rather
+       than a faint grey outline nobody notices. */
+    --ring: 210 29% 34%;
 
     --radius: 0.5rem;
   }
 
+  /**
+   * Dark mode. No toggle is built — `darkMode: "class"` means it activates only
+   * when something puts `.dark` on the html element. Maintained anyway because a
+   * half-defined dark palette is worse than none: the day a toggle is added, the
+   * gaps show up as unreadable text rather than as missing work.
+   *
+   * The brand colours INVERT ROLES here. Navy is the page, not the button — a
+   * dark-on-dark primary button is invisible, so the light surface becomes the
+   * action colour.
+   */
   .dark {
-    --background: 0 0% 3.9%;
-    --foreground: 0 0% 98%;
+    --background: 210 26% 11%;
+    --foreground: 200 16% 94%;
 
-    --card: 0 0% 3.9%;
-    --card-foreground: 0 0% 98%;
+    --card: 210 25% 14%;
+    --card-foreground: 200 16% 94%;
 
-    --popover: 0 0% 3.9%;
-    --popover-foreground: 0 0% 98%;
+    --popover: 210 25% 14%;
+    --popover-foreground: 200 16% 94%;
 
-    --primary: 0 0% 98%;
-    --primary-foreground: 0 0% 9%;
+    --primary: 200 16% 94%;
+    --primary-foreground: 210 29% 18%;
 
-    --secondary: 0 0% 14.9%;
-    --secondary-foreground: 0 0% 98%;
+    --secondary: 210 22% 19%;
+    --secondary-foreground: 200 16% 94%;
 
-    --muted: 0 0% 14.9%;
-    --muted-foreground: 0 0% 63.9%;
+    --muted: 210 22% 18%;
+    --muted-foreground: 205 12% 68%;
 
-    --accent: 0 0% 14.9%;
-    --accent-foreground: 0 0% 98%;
+    --accent: 210 22% 22%;
+    --accent-foreground: 200 16% 94%;
 
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
+    /* Lightened rather than darkened — on a dark ground the contrast problem
+       runs the other way. */
+    --success: 145 55% 55%;
+    --success-foreground: 210 29% 12%;
 
-    --border: 0 0% 14.9%;
-    --input: 0 0% 14.9%;
-    --ring: 0 0% 83.1%;
+    --warning: 45 80% 60%;
+    --warning-foreground: 210 29% 12%;
+
+    --destructive: 0 70% 62%;
+    --destructive-foreground: 210 29% 12%;
+
+    --border: 210 20% 24%;
+    --input: 210 20% 28%;
+    --ring: 200 16% 70%;
   }
 }
 
@@ -88,5 +154,28 @@
     font-feature-settings:
       "rlig" 1,
       "calt" 1;
+  }
+
+  /**
+   * Digits line up in columns.
+   *
+   * Applied to tables and to anything tagged `.tabular` rather than globally,
+   * because proportional figures read better in prose. In a queue of enquiry
+   * numbers and dates, misaligned digits are the difference between scanning a
+   * column and reading it.
+   */
+  table,
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /**
+   * A visible focus ring everywhere, for keyboard users.
+   *
+   * `:focus-visible`, not `:focus`, so a mouse click does not leave a ring behind
+   * on every button. Set once here so no component has to remember it.
+   */
+  :focus-visible {
+    @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
   }
 }
