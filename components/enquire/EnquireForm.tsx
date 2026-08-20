@@ -4,7 +4,10 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Form,
   FormControl,
@@ -135,23 +138,47 @@ export function EnquireForm() {
   if (receipt) return <EnquireSuccess receipt={receipt} />;
 
   if (loading) {
-    return <p className="text-sm text-muted-foreground">Loading the enquiry form…</p>;
+    return (
+      // Field-shaped placeholders, so the form does not jump when the programme list
+      // arrives. The visible text is for screen readers, which the skeleton itself
+      // is deliberately hidden from.
+      <div className="space-y-6">
+        <p className="sr-only" role="status">
+          Loading the enquiry form.
+        </p>
+        {[0, 1, 2].map((index) => (
+          <Card key={index} className="p-6">
+            <Skeleton className="h-4 w-28" />
+            <Skeleton className="mt-4 h-9 w-full" />
+            <Skeleton className="mt-4 h-9 w-2/3" />
+          </Card>
+        ))}
+      </div>
+    );
   }
 
   if (configError || !config) {
     return (
-      <div className="rounded-lg border border-destructive/50 bg-destructive/5 p-4">
-        <p className="text-sm font-medium text-destructive">{configError}</p>
-        <Button variant="outline" size="sm" className="mt-3" onClick={retry}>
-          Try again
-        </Button>
-      </div>
+      <Alert variant="destructive">
+        <AlertTitle>The form could not load</AlertTitle>
+        <AlertDescription>
+          <p>{configError}</p>
+          <Button variant="outline" size="sm" className="mt-3" onClick={retry}>
+            Try again
+          </Button>
+        </AlertDescription>
+      </Alert>
     );
   }
 
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6" noValidate>
+        {/* ── Section 1: who to contact ──────────────────────────────────────── */}
+        <Section
+          title="Your details"
+          description="So the admissions team can reach you about this enquiry."
+        >
         <FormField
           control={form.control}
           name="fullName"
@@ -211,7 +238,13 @@ export function EnquireForm() {
             )}
           />
         </div>
+        </Section>
 
+        {/* ── Section 2: what they are asking about ──────────────────────────── */}
+        <Section
+          title="Your interest"
+          description="Which programme, and anything you would like the team to know."
+        >
         <FormField
           control={form.control}
           name="programmeCode"
@@ -259,12 +292,34 @@ export function EnquireForm() {
           )}
         />
 
+        <FormField
+          control={form.control}
+          name="message"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>
+                Anything else{" "}
+                <span className="font-normal text-muted-foreground">(optional)</span>
+              </FormLabel>
+              <FormControl>
+                <Textarea
+                  rows={4}
+                  placeholder="Questions about fees, timings, eligibility…"
+                  {...field}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        </Section>
+
         {/* ── Unconfirmed placeholder fields ────────────────────────────────────
             SCCT has not confirmed which qualification details they need (open
             question 3). These are labelled as placeholders IN THE UI, not just in
             the README, so nobody demonstrating this can mistake them for a
             confirmed requirement. */}
-        <fieldset className="space-y-4 rounded-lg border border-dashed p-4">
+        {/* <fieldset className="space-y-4 rounded-lg border border-dashed bg-muted/30 p-5">
           <legend className="px-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
             Placeholder fields — pending SCCT confirmation
           </legend>
@@ -317,45 +372,58 @@ export function EnquireForm() {
               )}
             />
           </div>
-        </fieldset>
-
-        <FormField
-          control={form.control}
-          name="message"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>
-                Anything else{" "}
-                <span className="font-normal text-muted-foreground">(optional)</span>
-              </FormLabel>
-              <FormControl>
-                <Textarea rows={4} placeholder="Questions about fees, timings, eligibility…" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        </fieldset> */}
 
         {submitError && (
-          <div
-            role="alert"
-            className="rounded-lg border border-destructive/50 bg-destructive/5 p-4"
-          >
-            <p className="text-sm font-medium text-destructive">{submitError}</p>
-            <p className="mt-1 text-xs text-muted-foreground">
+          <Alert variant="destructive">
+            <AlertTitle>{submitError}</AlertTitle>
+            <AlertDescription className="text-muted-foreground">
               Everything you typed has been kept — press submit to try again.
-            </p>
-          </div>
+            </AlertDescription>
+          </Alert>
         )}
 
-        <Button type="submit" disabled={form.formState.isSubmitting} className="w-full sm:w-auto">
-          {form.formState.isSubmitting ? "Submitting…" : "Submit enquiry"}
-        </Button>
+        <div className="flex flex-wrap items-center gap-4">
+          <Button type="submit" disabled={form.formState.isSubmitting} size="lg">
+            {form.formState.isSubmitting ? "Submitting…" : "Submit enquiry"}
+          </Button>
 
-        <p className="text-xs text-muted-foreground">
-          Your details are used only so the SCCT admissions team can contact you about this enquiry.
-        </p>
+          <p className="text-xs text-muted-foreground">
+            Used only to contact you about this enquiry.
+          </p>
+        </div>
       </form>
     </Form>
+  );
+}
+
+/**
+ * A labelled group of fields.
+ *
+ * Nine inputs in one undifferentiated column reads as a long form; the same nine in
+ * three named groups reads as three short questions. That is the entire reason this
+ * exists — it changes how much work the form appears to be, which is what decides
+ * whether a parent finishes it.
+ *
+ * A real `<fieldset>` with a `<legend>`, not a styled div: it is what tells a screen
+ * reader that these inputs belong together, and it is free.
+ */
+function Section({
+  title,
+  description,
+  children,
+}: {
+  title: string;
+  description: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <Card asChild>
+      <fieldset className="p-5 sm:p-6">
+      <legend className="px-1 text-sm font-semibold">{title}</legend>
+      <p className="mb-5 mt-1 text-xs text-muted-foreground">{description}</p>
+        <div className="space-y-6">{children}</div>
+      </fieldset>
+    </Card>
   );
 }
