@@ -27,6 +27,7 @@
     "lucide-react": "^1.32.0",
     "mongoose": "^8.24.3",
     "next": "^14.2.35",
+    "next-auth": "5.0.0-beta.32",
     "react": "^18",
     "react-dom": "^18",
     "react-hook-form": "^7.85.0",
