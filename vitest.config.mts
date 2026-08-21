@@ -32,12 +32,40 @@ import tsconfigPaths from "vite-tsconfig-paths";
  */
 export default defineConfig({
   plugins: [tsconfigPaths()],
+
+  /**
+   * `next/server` → `next/server.js`.
+   *
+   * Auth.js imports the bare specifier `next/server`, which Next 14 does not list in
+   * its package `exports` map — it ships the file and relies on the bundler
+   * resolving it. Webpack does; Node's ESM resolver, which Vitest uses, does not,
+   * and the failure is an unresolved-module error inside `next-auth/lib/env.js` that
+   * points at neither this project's code nor anything obviously fixable.
+   *
+   * The alias is exact (`^next/server$`), so it cannot accidentally rewrite
+   * `next/server/…` or any other Next entry point. It affects tests only — the app
+   * is bundled by Next, where the original specifier resolves correctly.
+   *
+   * `server.deps.inline` below is the other half and is not optional: Vitest leaves
+   * node_modules externalised, so Node resolves Auth.js's imports and never sees
+   * this alias. Inlining those two packages routes them through Vite, where it
+   * applies.
+   */
+  resolve: {
+    alias: [{ find: /^next\/server$/, replacement: "next/server.js" }],
+  },
+
   test: {
     environment: "node",
     globals: true,
     setupFiles: ["./tests/setup.ts"],
     include: ["tests/**/*.test.ts"],
     fileParallelism: false,
+
+    // See the `resolve.alias` note above — these two must be processed by Vite for
+    // the alias to reach Auth.js's own imports.
+    server: { deps: { inline: ["next-auth", "@auth/core"] } },
+
     testTimeout: 20_000,
     hookTimeout: 30_000,
   },
