@@ -45,6 +45,13 @@ const PERMISSIONS: Array<{
     description: "Change status and next follow-up on an owned enquiry.",
   },
   {
+    code: PERMISSION_CODES.ENQUIRY_UPDATE_ALL,
+    name: "Update any enquiry",
+    category: "enquiry",
+    description:
+      "Change status and next follow-up on any enquiry, including another owner's.",
+  },
+  {
     code: PERMISSION_CODES.ENQUIRY_NOTE_CREATE,
     name: "Add notes",
     category: "enquiry",
