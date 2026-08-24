@@ -217,25 +217,26 @@ function toPrincipal(session: Session): Principal {
  * has a session or does not, and conflating the two is a client-side concern
  * (conventions §12).
  */
-export async function currentPrincipal(req?: Request): Promise<Principal | null> {
+export async function currentPrincipal(): Promise<Principal | null> {
   /**
-   * PASS THE REQUEST WHEN THERE IS ONE. Called with no argument, Auth.js reads the
-   * cookie from `headers()` — correct in a server component, where there is no
-   * request object to hand it. A route handler HAS the request, and giving it one
-   * matters for two reasons: it removes a dependency on Next's ambient request
-   * scope, and it keeps handlers callable as plain functions in tests, which is the
-   * property conventions §13 is built on.
+   * ALWAYS THE NO-ARGUMENT FORM. `auth()` reads the session cookie through Next's
+   * `headers()`, which works in a server component, a layout AND a route handler —
+   * all three run inside a request scope.
    *
-   * THE CAST IS DELIBERATE AND NARROW. Auth.js's runtime explicitly branches on
-   * `args[0] instanceof Request`, but its published overloads cover only `()`,
-   * `(NextApiRequest, NextApiResponse)`, `(GetServerSidePropsContext)` and the
-   * middleware wrapper — a plain `Request` is supported but untyped. The cast is
-   * confined to this one line rather than pushed onto every caller, and it is the
-   * first thing to re-check on an Auth.js upgrade.
+   * DO NOT PASS THE REQUEST. An earlier version of this function called
+   * `auth(request)` in route handlers, on the assumption that Auth.js's runtime
+   * branch on `args[0] instanceof Request` was an untyped session read. It is not:
+   * that branch is the MIDDLEWARE entry point (`next-auth/lib/index.js`), and it
+   * returns a `Response`, not a `Session`. The result had no `user`, so every
+   * authenticated write was rejected as unauthenticated — a bug that reached the
+   * browser as "Sign in to continue" on a perfectly valid session.
+   *
+   * The cast that made it compile is the lesson: the published overloads did not
+   * include `Request` for a reason, and casting past them replaced a compile error
+   * with a runtime one. Anything Auth.js does not type is not a private API to be
+   * reached around.
    */
-  const session = req
-    ? await (auth as unknown as (request: Request) => Promise<Session | null>)(req)
-    : await auth();
+  const session = await auth();
 
   // A session object with no userId is a decoded-but-malformed token. Treated as
   // anonymous rather than trusted with a missing field.
@@ -248,8 +249,8 @@ export async function currentPrincipal(req?: Request): Promise<Principal | null>
  * Require a session. For route handlers — returns a `Result`, so the handler maps
  * the code to a status through the same envelope as every other failure.
  */
-export async function requireSession(req?: Request): Promise<Result<Principal>> {
-  const principal = await currentPrincipal(req);
+export async function requireSession(): Promise<Result<Principal>> {
+  const principal = await currentPrincipal();
 
   if (!principal) {
     return fail(ERROR_CODES.UNAUTHENTICATED, "Sign in to continue.");
@@ -266,11 +267,8 @@ export async function requireSession(req?: Request): Promise<Result<Principal>> 
  * always denies is as much a bug as one that always allows, and much harder to
  * spot.
  */
-export async function requirePermission(
-  code: PermissionCode,
-  req?: Request,
-): Promise<Result<Principal>> {
-  const session = await requireSession(req);
+export async function requirePermission(code: PermissionCode): Promise<Result<Principal>> {
+  const session = await requireSession();
 
   if (!session.ok) return session;
 

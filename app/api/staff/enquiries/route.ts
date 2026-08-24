@@ -34,10 +34,7 @@ export const runtime = "nodejs";
  * An unauthenticated caller must not be able to make this endpoint do work.
  */
 export async function GET(req: Request) {
-  // `req` is passed so the session is read from THIS request rather than from
-  // Next's ambient request scope — which is what lets a test call this function
-  // directly with a constructed `Request` (conventions §13).
-  const auth = await requirePermission(PERMISSION_CODES.ENQUIRY_VIEW_OWN, req);
+  const auth = await requirePermission(PERMISSION_CODES.ENQUIRY_VIEW_OWN);
 
   if (!auth.ok) return jsonFail(auth.code, auth.message);
 

@@ -21,7 +21,7 @@ export const runtime = "nodejs";
  * else that might later want to add a note.
  */
 export async function POST(req: Request, { params }: { params: { id: string } }) {
-  const auth = await requirePermission(PERMISSION_CODES.ENQUIRY_NOTE_CREATE, req);
+  const auth = await requirePermission(PERMISSION_CODES.ENQUIRY_NOTE_CREATE);
   if (!auth.ok) return jsonFail(auth.code, auth.message);
 
   const body = await readJson(req);

@@ -1,5 +1,45 @@
 import mongoose from "mongoose";
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+/**
+ * `lib/auth` is mocked for the route-handler tests.
+ *
+ * WHY IT HAS TO BE. Reading a session means reading a cookie through Next's
+ * `headers()`, which only works inside a request scope — something Vitest cannot
+ * provide when calling a handler as a plain function. Without the mock, the only
+ * testable path is the unauthenticated one, and a guard that has only been proven to
+ * say "no" has not been proven to work.
+ *
+ * WHAT THIS DOES NOT COVER, stated plainly: the wiring between Auth.js and the guard
+ * itself. That is exactly where the "Sign in to continue" bug lived, and no unit test
+ * would have found it — only running the app does. The mock is scoped to the
+ * permission check, so everything downstream of it (scoping, the envelope, the
+ * service) is the real code.
+ */
+const session = vi.hoisted(() => ({
+  principal: null as unknown,
+}));
+
+vi.mock("@/lib/auth", () => ({
+  requirePermission: async (code: string) => {
+    const principal = session.principal as { permissions: string[] } | null;
+
+    if (!principal) {
+      return { ok: false, code: "UNAUTHENTICATED", message: "Sign in to continue." };
+    }
+    if (!principal.permissions.includes(code)) {
+      return { ok: false, code: "FORBIDDEN", message: `Requires "${code}".` };
+    }
+    return { ok: true, data: principal };
+  },
+  requireSession: async () =>
+    session.principal
+      ? { ok: true, data: session.principal }
+      : { ok: false, code: "UNAUTHENTICATED", message: "Sign in to continue." },
+  currentPrincipal: async () => session.principal,
+  can: (principal: { permissions: string[] } | null, code: string) =>
+    principal?.permissions.includes(code) ?? false,
+}));
 
 import { GET } from "@/app/api/staff/enquiries/route";
 import { PERMISSION_CODES, PROGRAMME_CODES, SOURCE_CODES, STATUS_CODES } from "@/config/codes";
@@ -105,9 +145,17 @@ async function enquiryOwnedBy(owner: string | null, overrides: Record<string, un
   return result.data.enquiry;
 }
 
+/** Who the mocked guard reports for the next route-handler call. */
+function signedInAs(principal: Principal | null) {
+  session.principal = principal;
+}
+
 beforeEach(async () => {
   await seedConfig();
   await principals();
+  // Anonymous by default, so a handler test that forgets to sign in fails loudly
+  // rather than inheriting whoever the previous test happened to be.
+  signedInAs(null);
 });
 
 // ─── Visibility ──────────────────────────────────────────────────────────────
@@ -579,8 +627,8 @@ describe("GET /api/staff/enquiries", () => {
   }
 
   it("refuses an unauthenticated caller with 401 and the standard envelope", async () => {
-    // No session cookie is present, so `requirePermission` fails before the database
-    // is even touched.
+    signedInAs(null);
+
     const response = await get();
     const body = await response.json();
 
@@ -591,7 +639,52 @@ describe("GET /api/staff/enquiries", () => {
     expect(body.data).toBeUndefined();
   });
 
-  it("never caches an authenticated response", async () => {
+  it("returns the paginated envelope to an authenticated caller", async () => {
+    /**
+     * THIS TEST EXISTS BECAUSE ITS ABSENCE HID A REAL BUG.
+     *
+     * The handler tests previously only covered the 401 path — which passes whether
+     * or not an authenticated request works at all. `requirePermission` was being
+     * given the `Request` object, which Auth.js treats as a MIDDLEWARE call rather
+     * than a session read, so every authenticated caller was rejected as
+     * unauthenticated. Green tests, broken endpoint.
+     *
+     * A passing test for the success path is the minimum bar for a guard: proving it
+     * says no is only half of proving it works.
+     */
+    signedInAs(manager);
+    await enquiryOwnedBy(null);
+
+    const response = await get("?limit=5");
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.success).toBe(true);
+    expect(body.total).toBe(1);
+    expect(Array.isArray(body.data)).toBe(true);
+    expect(body.data[0].enquiryNumber).toMatch(/^ENQ-/);
+  });
+
+  it("scopes the API response the same way the page does", async () => {
+    await enquiryOwnedBy(counsellorTwo.staffProfileId);
+    await enquiryOwnedBy(null, { phone: "9812345671" });
+
+    signedInAs(counsellorOne);
+    const mine = await (await get()).json();
+
+    signedInAs(manager);
+    const all = await (await get()).json();
+
+    // The endpoint is what the export and any future consumer read, so its scoping
+    // must match the screen's exactly — an export that leaks a colleague's enquiries
+    // would be worse than one that failed.
+    expect(mine.total).toBe(1);
+    expect(all.total).toBe(2);
+  });
+
+  it("never caches a response", async () => {
+    signedInAs(manager);
+
     const response = await get();
     expect(response.headers.get("cache-control")).toContain("no-store");
   });

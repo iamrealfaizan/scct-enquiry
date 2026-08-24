@@ -23,7 +23,7 @@ export const runtime = "nodejs";
  * written.
  */
 export async function POST(req: Request, { params }: { params: { id: string } }) {
-  const auth = await requirePermission(PERMISSION_CODES.ENQUIRY_UPDATE_OWN, req);
+  const auth = await requirePermission(PERMISSION_CODES.ENQUIRY_UPDATE_OWN);
   if (!auth.ok) return jsonFail(auth.code, auth.message);
 
   const body = await readJson(req);
